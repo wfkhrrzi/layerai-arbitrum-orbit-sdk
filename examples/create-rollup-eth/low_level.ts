@@ -1,14 +1,15 @@
 import { Chain, createPublicClient, http } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia } from 'viem/chains';
 import {
   createRollupPrepareDeploymentParamsConfig,
   prepareChainConfig,
   createRollupPrepareTransactionRequest,
   createRollupPrepareTransactionReceipt,
+  utils,
 } from '@arbitrum/orbit-sdk';
-import { sanitizePrivateKey, generateChainId } from '@arbitrum/orbit-sdk/utils';
+
 import { config } from 'dotenv';
+import { mainnet, sepolia } from 'viem/chains';
 config();
 
 function withFallbackPrivateKey(privateKey: string | undefined): `0x${string}` {
@@ -16,7 +17,7 @@ function withFallbackPrivateKey(privateKey: string | undefined): `0x${string}` {
     return generatePrivateKey();
   }
 
-  return sanitizePrivateKey(privateKey);
+  return utils.sanitizePrivateKey(privateKey);
 }
 
 function getBlockExplorerUrl(chain: Chain) {
@@ -49,7 +50,7 @@ const parentChainPublicClient = createPublicClient({
 });
 
 // load the deployer account
-const deployer = privateKeyToAccount(sanitizePrivateKey(process.env.DEPLOYER_PRIVATE_KEY));
+const deployer = privateKeyToAccount(utils.sanitizePrivateKey(process.env.DEPLOYER_PRIVATE_KEY));
 
 async function main() {
   // generate a random chain id
@@ -58,7 +59,7 @@ async function main() {
   // create the chain config
   const chainConfig = prepareChainConfig({
     chainId,
-    arbitrum: { InitialChainOwner: deployer.address, DataAvailabilityCommittee: true },
+    arbitrum: { InitialChainOwner: deployer.address, DataAvailabilityCommittee: false },
   });
 
   // prepare the transaction for deploying the core contracts
@@ -74,6 +75,11 @@ async function main() {
     },
     account: deployer.address,
     publicClient: parentChainPublicClient,
+    gasOverrides: {
+      gasLimit: {
+        base: 10_000_000n
+      }
+    }
   });
 
   // sign and send the transaction
@@ -85,6 +91,10 @@ async function main() {
   const txReceipt = createRollupPrepareTransactionReceipt(
     await parentChainPublicClient.waitForTransactionReceipt({ hash: txHash }),
   );
+
+  console.log(txReceipt.getCoreContracts())
+  console.log("validator address:",validator,validatorPrivateKey)
+  console.log("batchPoster address:",batchPoster,batchPosterPrivateKey)
 
   console.log(`Deployed in ${getBlockExplorerUrl(parentChain)}/tx/${txReceipt.transactionHash}`);
 }

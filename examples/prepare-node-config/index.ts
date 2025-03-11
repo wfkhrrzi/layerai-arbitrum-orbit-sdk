@@ -71,7 +71,7 @@ async function main() {
 
   // prepare the node config
   const nodeConfigParameters: PrepareNodeConfigParams = {
-    chainName: 'My Orbit Chain',
+    chainName: 'LayerAI',
     chainConfig,
     coreContracts,
     batchPosterPrivateKey: process.env.BATCH_POSTER_PRIVATE_KEY as `0x${string}`,
