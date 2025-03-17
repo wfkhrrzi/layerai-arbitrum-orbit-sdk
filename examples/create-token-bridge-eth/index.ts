@@ -1,6 +1,3 @@
-import { Chain, createPublicClient, http, defineChain } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia } from 'viem/chains';
 import {
   createTokenBridgePrepareSetWethGatewayTransactionReceipt,
   createTokenBridgePrepareSetWethGatewayTransactionRequest,
@@ -9,6 +6,9 @@ import {
 } from '@arbitrum/orbit-sdk';
 import { sanitizePrivateKey } from '@arbitrum/orbit-sdk/utils';
 import { config } from 'dotenv';
+import { Chain, createPublicClient, defineChain, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { sepolia } from 'viem/chains';
 config();
 
 function getBlockExplorerUrl(chain: Chain) {
@@ -38,7 +38,7 @@ if (typeof process.env.PARENT_CHAIN_RPC === 'undefined' || process.env.PARENT_CH
 }
 
 // set the parent chain and create a public client for it
-const parentChain = arbitrumSepolia;
+const parentChain = sepolia;
 const parentChainPublicClient = createPublicClient({
   chain: parentChain,
   transport: http(process.env.PARENT_CHAIN_RPC),
@@ -47,8 +47,8 @@ const parentChainPublicClient = createPublicClient({
 // define chain config for the orbit chain
 const orbitChain = defineChain({
   id: Number(process.env.ORBIT_CHAIN_ID),
-  network: 'Orbit chain',
-  name: 'orbit',
+  network: 'LayerAI chain',
+  name: 'LayerAI',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
     default: {

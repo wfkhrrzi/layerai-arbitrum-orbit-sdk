@@ -1,4 +1,4 @@
-import { Chain, createPublicClient, http } from 'viem';
+import { Chain, createPublicClient, http, parseEther } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import {
   createRollupPrepareDeploymentParamsConfig,
@@ -6,6 +6,7 @@ import {
   createRollupPrepareTransactionRequest,
   createRollupPrepareTransactionReceipt,
   utils,
+  CreateRollupPrepareTransactionRequestParams,
 } from '@arbitrum/orbit-sdk';
 
 import { config } from 'dotenv';
@@ -43,7 +44,7 @@ const validatorPrivateKey = withFallbackPrivateKey(process.env.VALIDATOR_PRIVATE
 const validator = privateKeyToAccount(validatorPrivateKey).address;
 
 // set the parent chain and create a public client for it
-const parentChain = arbitrumSepolia;
+const parentChain = sepolia;
 const parentChainPublicClient = createPublicClient({
   chain: parentChain,
   transport: http(process.env.PARENT_CHAIN_RPC),
@@ -54,7 +55,7 @@ const deployer = privateKeyToAccount(utils.sanitizePrivateKey(process.env.DEPLOY
 
 async function main() {
   // generate a random chain id
-  const chainId = generateChainId();
+  const chainId = 11223344;
 
   // create the chain config
   const chainConfig = prepareChainConfig({
@@ -63,24 +64,30 @@ async function main() {
   });
 
   // prepare the transaction for deploying the core contracts
+  const params: CreateRollupPrepareTransactionRequestParams<typeof parentChain>['params'] = {
+    config: createRollupPrepareDeploymentParamsConfig(parentChainPublicClient, {
+      chainId: BigInt(chainId),
+      owner: deployer.address,
+      chainConfig,
+    }),
+    batchPosters: [batchPoster],
+    validators: [validator],
+  };
+  params['config']['baseStake'] = parseEther('0.001');
+
   const request = await createRollupPrepareTransactionRequest({
-    params: {
-      config: createRollupPrepareDeploymentParamsConfig(parentChainPublicClient, {
-        chainId: BigInt(chainId),
-        owner: deployer.address,
-        chainConfig,
-      }),
-      batchPosters: [batchPoster],
-      validators: [validator],
-    },
+    params,
     account: deployer.address,
     publicClient: parentChainPublicClient,
-    gasOverrides: {
-      gasLimit: {
-        base: 10_000_000n
-      }
-    }
+    // gasOverrides: {
+    //   gasLimit: {
+    //     base: 10_000_000n,
+    //   },
+    // },
   });
+
+  console.log('chainConfig:', chainConfig);
+  console.log('rollup params:', params);
 
   // sign and send the transaction
   const txHash = await parentChainPublicClient.sendRawTransaction({
@@ -92,9 +99,9 @@ async function main() {
     await parentChainPublicClient.waitForTransactionReceipt({ hash: txHash }),
   );
 
-  console.log(txReceipt.getCoreContracts())
-  console.log("validator address:",validator,validatorPrivateKey)
-  console.log("batchPoster address:",batchPoster,batchPosterPrivateKey)
+  console.log(txReceipt.getCoreContracts());
+  console.log('validator address:', validator, validatorPrivateKey);
+  console.log('batchPoster address:', batchPoster, batchPosterPrivateKey);
 
   console.log(`Deployed in ${getBlockExplorerUrl(parentChain)}/tx/${txReceipt.transactionHash}`);
 }

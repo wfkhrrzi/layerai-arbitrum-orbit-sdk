@@ -1,6 +1,6 @@
 import { writeFile } from 'fs/promises';
 import { Chain, createPublicClient, http } from 'viem';
-import { arbitrumSepolia } from 'viem/chains';
+import { arbitrumSepolia, sepolia } from 'viem/chains';
 import {
   ChainConfig,
   PrepareNodeConfigParams,
@@ -35,7 +35,7 @@ if (typeof process.env.PARENT_CHAIN_RPC === 'undefined' || process.env.PARENT_CH
 }
 
 // set the parent chain and create a public client for it
-const parentChain = arbitrumSepolia;
+const parentChain = sepolia;
 const parentChainPublicClient = createPublicClient({
   chain: parentChain,
   transport: http(process.env.PARENT_CHAIN_RPC),
